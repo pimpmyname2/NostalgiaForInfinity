@@ -247,6 +247,7 @@ jobs:
       - name: Flatten downloaded artifacts
         run: |
           find downloaded-results/current -type f -name 'backtest-output-*.txt' -exec mv {} downloaded-results/current/ \;
+          tree
 
       - name: Pre Format Backtest Results
         run: |
