@@ -151,7 +151,8 @@ class Backtest:
     # ---- Save artifacts to CI if requested ----
     if self.request.config.option.artifacts_path:
       artifacts_path = self.request.config.option.artifacts_path
-      shutil.copyfile(json_results_file, artifacts_path / json_results_file.name)
+      ci_json_name = f"ci-results-{exchange}-{trading_mode}-{start_date}-{end_date}.json"
+      shutil.copy2(json_results_file, artifacts_path / ci_json_name)
       shutil.copyfile(signals_file, artifacts_path / signals_file.name)
       shutil.copyfile(exited_file, artifacts_path / exited_file.name)
       shutil.copyfile(rejected_file, artifacts_path / rejected_file.name)
