@@ -16,35 +16,17 @@ jobs:
         TIMERANGE:
           - 20250801-20250901
           - 20250701-20250801
-          - 20250601-20250701
-          - 20250501-20250601
-          - 20250401-20250501
-          - 20250301-20250401
-          - 20250201-20250301
-          - 20250101-20250201
-          - 20241201-20250101
-          - 20241101-20241201
-          - 20241001-20241101
-          - 20240901-20241001
-          - 20240801-20240901
-          - 20240701-20240801
-          - 20240601-20240701
-          - 20240501-20240601
-          - 20240401-20240501
-          - 20240301-20240401
-          - 20240201-20240301
-          - 20240101-20240201
     steps:
       - uses: actions/checkout@v5
       - name: Pull docker image
         run: |
-          docker pull ghcr.io/${{ github.actor }}/ci-strategy-backtesting:latest
+          docker pull ghcr.io/iterativv/ci-strategy-backtesting:latest
 
       - name: Pull Market data and copy to user_data/data
         run: |
-          docker pull ghcr.io/${{ github.actor }}/market-data:kucoin-spot
+          docker pull ghcr.io/iterativv/market-data:kucoin-spot
           mkdir -p user_data/data
-          docker run --rm -v "$PWD/user_data/data:/host_data" ghcr.io/${{ github.actor }}/market-data:kucoin-spot \
+          docker run --rm -v "$PWD/user_data/data:/host_data" ghcr.io/iterativv/market-data:kucoin-spot \
             bash -c "cp -r /data/* /host_data/"
 
       - name: Run Backtests
@@ -60,7 +42,7 @@ jobs:
             -e "COLUMNS=240" \
             -t \
             --env-file .github/workflows/scripts/ci-proxy.env \
-            ghcr.io/${{ github.actor }}/ci-strategy-backtesting:latest \
+            ghcr.io/iterativv/ci-strategy-backtesting:latest \
             python -m pytest \
             tests/backtests \
             -ra -vv -s \
@@ -79,168 +61,10 @@ jobs:
           name: kucoin-spot-testrun-artifacts-${{ matrix.TIMERANGE }}
           path: artifacts/
 
-  Backtest-Binance-Spot:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        TIMERANGE:
-          - 20250801-20250901
-          - 20250701-20250801
-          - 20250601-20250701
-          - 20250501-20250601
-          - 20250401-20250501
-          - 20250301-20250401
-          - 20250201-20250301
-          - 20250101-20250201
-          - 20241201-20250101
-          - 20241101-20241201
-          - 20241001-20241101
-          - 20240901-20241001
-          - 20240801-20240901
-          - 20240701-20240801
-          - 20240601-20240701
-          - 20240501-20240601
-          - 20240401-20240501
-          - 20240301-20240401
-          - 20240201-20240301
-          - 20240101-20240201
-    steps:
-      - uses: actions/checkout@v5
-      - name: Inject Proxy Config
-        env:
-          PROXY: ${{ secrets.FREQTRADE_PROXY }}
-        run: |
-          jq --arg proxy "$PROXY" \
-            '.exchange.ccxt_config = { http_proxy: $proxy }' \
-            configs/proxy-binance.json > tmp.json && mv tmp.json configs/proxy-binance.json
-
-      - name: Pull docker image
-        run: |
-          docker pull ghcr.io/${{ github.actor }}/ci-strategy-backtesting:latest
-
-      - name: Pull Market data and copy to user_data/data
-        run: |
-          docker pull ghcr.io/${{ github.actor }}/market-data:binance-spot
-          mkdir -p user_data/data
-          docker run --rm -v "$PWD/user_data/data:/host_data" ghcr.io/${{ github.actor }}/market-data:binance-spot \
-            bash -c "cp -r /data/* /host_data/"
-
-      - name: Run Backtests
-        run: |
-          mkdir -p artifacts && chmod 777 artifacts
-          export COLUMNS=240
-          docker run -v "$PWD:/testing" \
-            -v "$PWD/user_data/data:/testing/user_data/data" \
-            --rm \
-            -w /testing \
-            --entrypoint "" \
-            -e "COLUMNS=240" \
-            -t \
-            --env-file .github/workflows/scripts/ci-proxy.env \
-            ghcr.io/${{ github.actor }}/ci-strategy-backtesting:latest \
-            python -m pytest \
-            tests/backtests \
-            -ra -vv -s \
-            --log-cli-level=info \
-            --artifacts-path=artifacts/ \
-            -p no:cacheprovider \
-            -n auto \
-            -k "binance and spot and ${{ matrix.TIMERANGE }}" \
-            --junitxml="artifacts/binance-spot-${{ matrix.TIMERANGE }}-report.xml"
-
-      - name: Show Backtest Output
-        run: cat artifacts/backtest-output-binance-spot-${{ matrix.TIMERANGE }}.txt
-      - name: Upload results
-        uses: actions/upload-artifact@v4
-        with:
-          name: binance-spot-testrun-artifacts-${{ matrix.TIMERANGE }}
-          path: artifacts/
-
-  Backtest-Binance-Futures:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        TIMERANGE:
-          - 20250801-20250901
-          - 20250701-20250801
-          - 20250601-20250701
-          - 20250501-20250601
-          - 20250401-20250501
-          - 20250301-20250401
-          - 20250201-20250301
-          - 20250101-20250201
-          - 20241201-20250101
-          - 20241101-20241201
-          - 20241001-20241101
-          - 20240901-20241001
-          - 20240801-20240901
-          - 20240701-20240801
-          - 20240601-20240701
-          - 20240501-20240601
-          - 20240401-20240501
-          - 20240301-20240401
-          - 20240201-20240301
-          - 20240101-20240201
-    steps:
-      - uses: actions/checkout@v5
-      - name: Inject Proxy Config
-        env:
-          PROXY: ${{ secrets.FREQTRADE_PROXY }}
-        run: |
-          jq --arg proxy "$PROXY" \
-            '.exchange.ccxt_config = { http_proxy: $proxy }' \
-            configs/proxy-binance.json > tmp.json && mv tmp.json configs/proxy-binance.json
-
-      - name: Pull docker image
-        run: |
-          docker pull ghcr.io/${{ github.actor }}/ci-strategy-backtesting:latest
-
-      - name: Pull Market data and copy to user_data/data
-        run: |
-          docker pull ghcr.io/${{ github.actor }}/market-data:binance-futures
-          mkdir -p user_data/data
-          docker run --rm -v "$PWD/user_data/data:/host_data" ghcr.io/${{ github.actor }}/market-data:binance-futures \
-            bash -c "cp -r /data/* /host_data/"
-
-      - name: Run Backtests
-        run: |
-          mkdir -p artifacts && chmod 777 artifacts
-          export COLUMNS=240
-          docker run -v "$PWD:/testing" \
-            -v "$PWD/user_data/data:/testing/user_data/data" \
-            --rm \
-            -w /testing \
-            --entrypoint "" \
-            -e "COLUMNS=240" \
-            -t \
-            --env-file .github/workflows/scripts/ci-proxy.env \
-            ghcr.io/${{ github.actor }}/ci-strategy-backtesting:latest \
-            python -m pytest \
-            tests/backtests \
-            -ra -vv -s \
-            --log-cli-level=info \
-            --artifacts-path=artifacts/ \
-            -p no:cacheprovider \
-            -n auto \
-            -k "binance and futures and ${{ matrix.TIMERANGE }}" \
-            --junitxml="artifacts/binance-futures-${{ matrix.TIMERANGE }}-report.xml"
-
-      - name: Show Backtest Output
-        run: cat artifacts/backtest-output-binance-futures-${{ matrix.TIMERANGE }}.txt
-      - name: Upload results
-        uses: actions/upload-artifact@v4
-        with:
-          name: binance-futures-testrun-artifacts-${{ matrix.TIMERANGE }}
-          path: artifacts/
-
   Merge-Artifacts:
     if: always()
     needs:
       - Backtest-Kucoin-Spot
-      - Backtest-Binance-Spot
-      - Backtest-Binance-Futures
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
