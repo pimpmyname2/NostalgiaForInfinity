@@ -22,8 +22,6 @@ jobs:
         env:
           PROXY: ${{ secrets.FREQTRADE_PROXY }}
         run: |
-          set -e
-
           echo "Checking Binance Spot..."
 
           RESPONSE=$(curl -s -x "$PROXY" --max-time 15 https://api.binance.com/api/v3/time)
@@ -32,17 +30,13 @@ jobs:
           if echo "$RESPONSE" | grep -qi "restricted location"; then
             echo "ok=false" >> $GITHUB_OUTPUT
             echo "msg=restricted location" >> $GITHUB_OUTPUT
-            exit 1
-          fi
-
-          if echo "$RESPONSE" | grep -qi "code"; then
+          elif echo "$RESPONSE" | grep -qi "code"; then
             echo "ok=false" >> $GITHUB_OUTPUT
             echo "msg=binance error response" >> $GITHUB_OUTPUT
-            exit 1
+          else
+            echo "ok=true" >> $GITHUB_OUTPUT
+            echo "msg=ok" >> $GITHUB_OUTPUT
           fi
-
-          echo "ok=true" >> $GITHUB_OUTPUT
-          echo "msg=ok" >> $GITHUB_OUTPUT
 
 
       - name: Check Binance Futures proxy
@@ -50,8 +44,6 @@ jobs:
         env:
           PROXY2: ${{ secrets.FREQTRADE_PROXY2 }}
         run: |
-          set -e
-
           echo "Checking Binance Futures..."
 
           RESPONSE=$(curl -s -x "$PROXY2" --max-time 15 https://fapi.binance.com/fapi/v1/time)
@@ -60,17 +52,28 @@ jobs:
           if echo "$RESPONSE" | grep -qi "restricted location"; then
             echo "ok=false" >> $GITHUB_OUTPUT
             echo "msg=restricted location" >> $GITHUB_OUTPUT
-            exit 1
-          fi
-
-          if echo "$RESPONSE" | grep -qi "code"; then
+          elif echo "$RESPONSE" | grep -qi "code"; then
             echo "ok=false" >> $GITHUB_OUTPUT
             echo "msg=binance error response" >> $GITHUB_OUTPUT
+          else
+            echo "ok=true" >> $GITHUB_OUTPUT
+            echo "msg=ok" >> $GITHUB_OUTPUT
+          fi
+
+
+      - name: Fail if any proxy is bad
+        run: |
+          if [ "${{ steps.spot.outputs.ok }}" != "true" ]; then
+            echo "Spot proxy failed: ${{ steps.spot.outputs.msg }}"
             exit 1
           fi
 
-          echo "ok=true" >> $GITHUB_OUTPUT
-          echo "msg=ok" >> $GITHUB_OUTPUT
+          if [ "${{ steps.futures.outputs.ok }}" != "true" ]; then
+            echo "Futures proxy failed: ${{ steps.futures.outputs.msg }}"
+            exit 1
+          fi
+
+          echo "All proxies OK"
   # Backtest Jobs
   Backtest-Kucoin-Spot:
     runs-on: ubuntu-latest
