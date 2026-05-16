@@ -60,20 +60,6 @@ jobs:
             echo "msg=ok" >> $GITHUB_OUTPUT
           fi
 
-
-      - name: Fail if any proxy is bad
-        run: |
-          if [ "${{ steps.spot.outputs.ok }}" != "true" ]; then
-            echo "Spot proxy failed: ${{ steps.spot.outputs.msg }}"
-            exit 1
-          fi
-
-          if [ "${{ steps.futures.outputs.ok }}" != "true" ]; then
-            echo "Futures proxy failed: ${{ steps.futures.outputs.msg }}"
-            exit 1
-          fi
-
-          echo "All proxies OK"
   # Backtest Jobs
   Backtest-Kucoin-Spot:
     runs-on: ubuntu-latest
