@@ -11548,8 +11548,11 @@ class NostalgiaForInfinityX7(IStrategy):
     if len(df) >= 1:
       last_candle = df.iloc[-1].squeeze()
       if (side == "long" and rate > last_candle["close"]) or (side == "short" and rate < last_candle["close"]):
-        slippage = (rate / last_candle["close"]) - 1.0
-        if (side == "long" and slippage < self.max_slippage) or (side == "short" and slippage > -self.max_slippage):
+        if side == "long":
+          slippage = (rate / last_candle["close"]) - 1.0
+        else:
+          slippage = (last_candle["close"] / rate) - 1.0
+        if slippage < self.max_slippage:
           return True
         else:
           log.warning(f"[{current_time}] Cancelling entry for {pair} due to slippage {(slippage * 100.0):.2f}%")
@@ -11615,13 +11618,7 @@ class NostalgiaForInfinityX7(IStrategy):
         if not is_liquidation:
           return False
       if self.exit_profit_only:
-        profit = 0.0
-        if trade.realized_profit != 0.0:
-          profit = ((rate - trade.open_rate) / trade.open_rate) * trade.stake_amount * (1 - trade.fee_close)
-          profit = profit + trade.realized_profit
-          profit = profit / trade.stake_amount
-        else:
-          profit = trade.calc_profit_ratio(rate)
+        profit = trade.calc_profit_ratio(rate)
         if profit < self.exit_profit_offset:
           return False
 
