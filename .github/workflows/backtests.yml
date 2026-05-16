@@ -8,29 +8,69 @@ on:
 
 jobs:
   Proxy-Check:
-    runs-on: ubuntu-latest
-    outputs:
-      spot_ok: ${{ steps.spot.outcome == 'success' }}
-      futures_ok: ${{ steps.futures.outcome == 'success' }}
+  runs-on: ubuntu-latest
 
-    steps:
-      - name: Check Binance Spot proxy
-        id: spot
-        env:
-          PROXY: ${{ secrets.FREQTRADE_PROXY }}
-        run: |
-          set -e
-          echo "Checking Binance Spot..."
-          curl -x "$PROXY" --max-time 15 https://api.binance.com/api/v3/ping
+  outputs:
+    spot_ok: ${{ steps.spot.outputs.ok }}
+    futures_ok: ${{ steps.futures.outputs.ok }}
+    spot_msg: ${{ steps.spot.outputs.msg }}
+    futures_msg: ${{ steps.futures.outputs.msg }}
 
-      - name: Check Binance Futures proxy
-        id: futures
-        env:
-          PROXY2: ${{ secrets.FREQTRADE_PROXY2 }}
-        run: |
-          set -e
-          echo "Checking Binance Futures..."
-          curl -x "$PROXY2" --max-time 15 https://fapi.binance.com/fapi/v1/ping
+  steps:
+    - name: Check Binance Spot proxy
+      id: spot
+      env:
+        PROXY: ${{ secrets.FREQTRADE_PROXY }}
+      run: |
+        set -e
+
+        echo "Checking Binance Spot..."
+
+        RESPONSE=$(curl -s -x "$PROXY" --max-time 15 https://api.binance.com/api/v3/time)
+        echo "$RESPONSE"
+
+        if echo "$RESPONSE" | grep -qi "restricted location"; then
+          echo "ok=false" >> $GITHUB_OUTPUT
+          echo "msg=restricted location" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        if echo "$RESPONSE" | grep -qi "code"; then
+          echo "ok=false" >> $GITHUB_OUTPUT
+          echo "msg=binance error response" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        echo "ok=true" >> $GITHUB_OUTPUT
+        echo "msg=ok" >> $GITHUB_OUTPUT
+
+
+    - name: Check Binance Futures proxy
+      id: futures
+      env:
+        PROXY2: ${{ secrets.FREQTRADE_PROXY2 }}
+      run: |
+        set -e
+
+        echo "Checking Binance Futures..."
+
+        RESPONSE=$(curl -s -x "$PROXY2" --max-time 15 https://fapi.binance.com/fapi/v1/time)
+        echo "$RESPONSE"
+
+        if echo "$RESPONSE" | grep -qi "restricted location"; then
+          echo "ok=false" >> $GITHUB_OUTPUT
+          echo "msg=restricted location" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        if echo "$RESPONSE" | grep -qi "code"; then
+          echo "ok=false" >> $GITHUB_OUTPUT
+          echo "msg=binance error response" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        echo "ok=true" >> $GITHUB_OUTPUT
+        echo "msg=ok" >> $GITHUB_OUTPUT
   # Backtest Jobs
   Backtest-Kucoin-Spot:
     runs-on: ubuntu-latest
